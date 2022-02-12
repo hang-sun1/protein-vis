@@ -1,0 +1,16 @@
+[package]
+name = "ray-tracing"
+version = "0.1.0"
+authors = ["hang"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+image = "0.23.4"
+indicatif = "0.14.0"
+num = "0.2.1"
+impl_ops = "0.1.1"
+rand = "0.7.3"
+threadpool = "1.8.1"
+num_cpus = "1.13.0"
