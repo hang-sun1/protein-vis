@@ -1,5 +1,7 @@
+#![allow(dead_code, unused_variables, unused_imports)]
 #[macro_use] extern crate impl_ops;
 
+use hsl::HSL;
 use image::{RgbImage, Rgb};
 use std::path::Path;
 use indicatif::ProgressBar;
@@ -30,37 +32,46 @@ fn main() {
     let _width: u32 = 384;
     let width: u32 = 1920;
     let height = (width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel = 10;
+    let samples_per_pixel = 40;
     
     let mut world = HittableList::new();
     let solid_color: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(0.8, 0.8, 0.0));
-    let solid_color2: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(100.0, 100.0, 100.0));
+    let solid_color2: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(100.0, 0.0, 0.0));
     let checkered: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::Checkered::new(Arc::clone(&solid_color), Arc::clone(&solid_color2)));
+    let lam = material::Lambertian::new(solid_color2.clone());
     let lam2 = material::DiffuseLight::new(Arc::clone(&solid_color2));
-    let metal = material::Metal::new(Vector3::new(0.8, 0.8, 0.8), 0.4);
+    let metal = material::Metal::new(Vector3::new(1.0, 0.0, 0.0), 0.4);
     let dielectric = material::Dielectric::new(1.5);
     let material_metal = Arc::new(metal);
+    let material_lam = Arc::new(lam);
     let material_lam2 = Arc::new(lam2);
     let material_dielectric = Arc::new(dielectric);
 
-    for coords in std::env::args().skip(1) {
+    let num_objects = std::env::args().skip(1).count();
+
+    for (i, coords) in std::env::args().skip(1).enumerate() {
         let coords_iter = coords.split(",")
-            .map(|s| s.parse::<f64>().expect("could not parse coordinate as f64"))
+            .map(|s| {
+                s.parse::<f64>().expect("could not parse coordinate as f64")
+            })
             .collect::<Vec<_>>();
             
         let x = coords_iter[0] / 5.0;
         let y = coords_iter[1] / 5.0;
         let z = coords_iter[2] / 5.0;
+        let rainbow_color = get_color_from_rainbow(i, num_objects); 
+        let color: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(rainbow_color.x(), rainbow_color.y(), rainbow_color.z()));
+        let material = Arc::new(material::Lambertian::new(color.clone()));
 
         let sphere: Arc<dyn Hittable + Send + Sync> = 
-            Arc::new(Sphere::new(Vector3::new(x, y, z), 0.1, material_metal.clone()));
+            Arc::new(Sphere::new(Vector3::new(x, y, z), 0.35, material.clone()));
         
         world.add(Arc::clone(&sphere));
     }
 
-    // let light: Arc<dyn Hittable+Send+Sync> =
-    //     Arc::new(Sphere::new(Vector3::new(0.0, 0.0, 100.0), 40.0, material_lam2.clone()));
-    // world.add(light);
+    let light: Arc<dyn Hittable+Send+Sync> =
+        Arc::new(Sphere::new(Vector3::new(40.0, 40.0, 100.0), 40.0, material_lam2.clone()));
+    world.add(light);
 
     eprintln!("Beginning Render!");
 
@@ -147,7 +158,20 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: usize) -> Vector3 {
             }
         }
     } else {
-        return Vector3::new(0.0, 0.0, 0.0);
+        let t = 0.5 * (ray.direction().normalize() + Vector3::new(1.0, 1.0, 1.0));
+        return (Vector3::new(1.0, 1.0, 1.0) - t) ^ Vector3::new(1.0, 1.0, 1.0) + t ^ Vector3::new(0.5, 0.7, 1.0);
+        // return Vector3::new(0.0, 0.0, 0.0);
     }
+}
+
+fn get_color_from_rainbow(n: usize, total: usize) -> Vector3 {
+    let hue = 360.0 / (total as f64) * (n as f64);
+    let hsl = HSL { h: hue, s: 0.5, l: 0.5 };
+    let (r, g, b) = hsl.to_rgb();
+    let red = r as f64 / 255.0;
+    let green = g as f64 / 255.0;
+    let blue = b as f64 / 255.0;
+
+    return Vector3::new(red, green, blue);
 }
 

@@ -18,7 +18,14 @@ def extract(file_name):
         for line in f:
             line = [x for x in line.split(' ') if x != '']
             if line[0] == 'ATOM' and line[2] == 'CA':
-                coords.append(f'{line[6]},{line[7]},{line[8]}')
+                try:
+                    float(line[6])
+                    float(line[7])
+                    float(line[8])
+                    coords.append(f'{line[6]},{line[7]},{line[8]}')
+                except ValueError:
+                    print('not a float, skipping')
+                    continue
     return coords
 
 if __name__ == "__main__":
@@ -29,7 +36,6 @@ if __name__ == "__main__":
     file_name = url.split('/')[-1]
 
     coords = extract(file_name)
-    print(coords)
 
     start_dir = os.getcwd();
     os.chdir(f'{start_dir}/ray-tracing')
