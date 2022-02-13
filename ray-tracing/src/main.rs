@@ -32,7 +32,7 @@ fn main() {
     let _width: u32 = 384;
     let width: u32 = 1920;
     let height = (width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel = 40;
+    let samples_per_pixel = 60;
     
     let mut world = HittableList::new();
     let solid_color: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(0.8, 0.8, 0.0));
@@ -49,6 +49,10 @@ fn main() {
 
     let num_objects = std::env::args().skip(1).count();
 
+    let mut ave_x = 0.0;
+    let mut ave_y = 0.0;
+    let mut ave_z = 0.0;
+
     for (i, coords) in std::env::args().skip(1).enumerate() {
         let coords_iter = coords.split(",")
             .map(|s| {
@@ -59,6 +63,11 @@ fn main() {
         let x = coords_iter[0] / 5.0;
         let y = coords_iter[1] / 5.0;
         let z = coords_iter[2] / 5.0;
+        
+        ave_x += x;
+        ave_y += y;
+        ave_z += z;
+
         let rainbow_color = get_color_from_rainbow(i, num_objects); 
         let color: Arc<dyn texture::Texture + Send + Sync> = Arc::new(texture::SolidColor::new(rainbow_color.x(), rainbow_color.y(), rainbow_color.z()));
         let material = Arc::new(material::Lambertian::new(color.clone()));
@@ -69,18 +78,32 @@ fn main() {
         world.add(Arc::clone(&sphere));
     }
 
-    let light: Arc<dyn Hittable+Send+Sync> =
-        Arc::new(Sphere::new(Vector3::new(40.0, 40.0, 100.0), 40.0, material_lam2.clone()));
-    world.add(light);
+    ave_x /= num_objects as f64;
+    ave_y /= num_objects as f64;
+    ave_z /= num_objects as f64;
+
+    // let light1: Arc<dyn Hittable+Send+Sync> =
+    //     Arc::new(Sphere::new(Vector3::new(40.0, 40.0, 100.0), 40.0, material_lam2.clone()));
+    // let light2: Arc<dyn Hittable+Send+Sync> =
+    //     Arc::new(Sphere::new(Vector3::new(-40.0, 40.0, 100.0), 40.0, material_lam2.clone()));
+    // let light3: Arc<dyn Hittable+Send+Sync> =
+    //     Arc::new(Sphere::new(Vector3::new(40.0, -40.0, 100.0), 40.0, material_lam2.clone()));
+    // let light4: Arc<dyn Hittable+Send+Sync> =
+    //     Arc::new(Sphere::new(Vector3::new(-40.0, -40.0, 100.0), 40.0, material_lam2.clone()));
+    // world.add(light1);
+    // world.add(light2);
+    // world.add(light3);
+    // world.add(light4);
 
     eprintln!("Beginning Render!");
 
 
     let world_lock = Arc::new(world);
-    let look_from = Vector3::new(0.0, 0.0, 30.0);
-    let look_at = Vector3::new(0.0, 0.0, 0.0);
+    let look_from = Vector3::new(0.0+ave_x, 0.0+ave_x, 30.0+ave_z);
+    // let look_at = Vector3::new(0.0, 0.0, 0.0);
+    let look_at = Vector3::new(ave_x, ave_y, ave_z);
     let vup = Vector3::new(0.0, 1.0, 0.0);
-    let camera = Camera::new(look_from, look_at, vup, 20.0, (look_from - look_at).length(), 0.0, 0.0, 1.0);
+    let camera = Camera::new(look_from, look_at, vup, 24.0, (look_from - look_at).length(), 0.0, 0.0, 1.0);
     let camera_lock = Arc::new(camera);
     
     let mut img = RgbImage::new(width, height);
@@ -158,9 +181,9 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: usize) -> Vector3 {
             }
         }
     } else {
-        let t = 0.5 * (ray.direction().normalize() + Vector3::new(1.0, 1.0, 1.0));
-        return (Vector3::new(1.0, 1.0, 1.0) - t) ^ Vector3::new(1.0, 1.0, 1.0) + t ^ Vector3::new(0.5, 0.7, 1.0);
-        // return Vector3::new(0.0, 0.0, 0.0);
+        // let t = 0.5 * (ray.direction().normalize() + Vector3::new(1.0, 1.0, 1.0));
+        // return (Vector3::new(1.0, 1.0, 1.0) - t) ^ Vector3::new(1.0, 1.0, 1.0) + t ^ Vector3::new(0.2, 0.2, 0.2);
+        return Vector3::new(0.6, 0.6, 0.6);
     }
 }
 
